@@ -59,15 +59,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const scaledBox = box.map(([x, y]) => [x * scaleX, y * scaleY]);
 
-        context.lineWidth = 4;
+        // 🔴 Zīmē sarkanu taisnstūri visiem svītrkodiem
+        context.lineWidth = 2;
+        context.strokeStyle = 'red';
+        context.beginPath();
+        context.moveTo(scaledBox[0][0], scaledBox[0][1]);
+        for (let i = 1; i < scaledBox.length; i++) {
+          context.lineTo(scaledBox[i][0], scaledBox[i][1]);
+        }
+        context.closePath();
+        context.stroke();
 
+        // 🟢/🟠 pārzīmē ar attiecīgo krāsu, ja atbilst
+        context.lineWidth = 4;
         if (code === searchCode) {
           context.strokeStyle = 'lime';
           beep.play();
         } else if (isSimilar(code, searchCode)) {
           context.strokeStyle = 'orange';
         } else {
-          return;
+          return; // tikai sarkanais, ja neatbilst
         }
 
         context.beginPath();
