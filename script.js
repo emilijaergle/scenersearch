@@ -55,58 +55,63 @@ document.addEventListener('DOMContentLoaded', () => {
       Quagga.start();
     });
 
-    Quagga.onDetected(result => {
-      console.log("DETECTED:", result);
+    Quagga.onProcessed(result => {
       overlay.width = overlay.clientWidth;
       overlay.height = overlay.clientHeight;
       context.clearRect(0, 0, overlay.width, overlay.height);
 
-      const boxes = result.boxes || [];
+      if (result && result.boxes) {
+        result.boxes.forEach(box => {
+          if (!box || !Array.isArray(box) || box.length < 4) return;
+          const scaleX = overlay.width / videoElement.videoWidth;
+          const scaleY = overlay.height / videoElement.videoHeight;
+          const scaledBox = box.map(([x, y]) => [x * scaleX, y * scaleY]);
 
-      boxes.forEach(boxData => {
-        const box = boxData.box || boxData;
-        const code = boxData.codeResult?.code;
+          context.beginPath();
+          context.moveTo(scaledBox[0][0], scaledBox[0][1]);
+          for (let i = 1; i < scaledBox.length; i++) {
+            context.lineTo(scaledBox[i][0], scaledBox[i][1]);
+          }
+          context.closePath();
 
-        if (!box || !Array.isArray(box) || box.length < 4) return;
+          context.lineWidth = 2;
+          context.strokeStyle = 'red';
+          context.stroke();
+        });
+      }
+    });
 
-        const scaleX = overlay.width / videoElement.videoWidth;
-        const scaleY = overlay.height / videoElement.videoHeight;
-        const scaledBox = box.map(([x, y]) => [x * scaleX, y * scaleY]);
+    Quagga.onDetected(result => {
+      const code = result.codeResult?.code;
+      const box = result.box;
 
-        context.lineWidth = 2;
-        context.strokeStyle = 'red';
-        context.beginPath();
-        context.moveTo(scaledBox[0][0], scaledBox[0][1]);
-        for (let i = 1; i < scaledBox.length; i++) {
-          context.lineTo(scaledBox[i][0], scaledBox[i][1]);
-        }
-        context.closePath();
-        context.stroke();
+      if (!box || !code) return;
 
-        if (!code) return;
+      const scaleX = overlay.width / videoElement.videoWidth;
+      const scaleY = overlay.height / videoElement.videoHeight;
+      const scaledBox = box.map(([x, y]) => [x * scaleX, y * scaleY]);
 
+      context.beginPath();
+      context.moveTo(scaledBox[0][0], scaledBox[0][1]);
+      for (let i = 1; i < scaledBox.length; i++) {
+        context.lineTo(scaledBox[i][0], scaledBox[i][1]);
+      }
+      context.closePath();
+
+      if (code === searchCode) {
         context.lineWidth = 4;
-        if (code === searchCode) {
-          context.strokeStyle = 'lime';
-          beep.play();
-        } else if (isSimilar(code, searchCode)) {
-          context.strokeStyle = 'orange';
-        } else {
-          return;
-        }
-
-        context.beginPath();
-        context.moveTo(scaledBox[0][0], scaledBox[0][1]);
-        for (let i = 1; i < scaledBox.length; i++) {
-          context.lineTo(scaledBox[i][0], scaledBox[i][1]);
-        }
-        context.closePath();
+        context.strokeStyle = 'lime';
         context.stroke();
+        beep.play();
+      } else if (isSimilar(code, searchCode)) {
+        context.lineWidth = 4;
+        context.strokeStyle = 'orange';
+        context.stroke();
+      }
 
-        context.fillStyle = 'white';
-        context.font = '16px Arial';
-        context.fillText(code, scaledBox[0][0], scaledBox[0][1] - 10);
-      });
+      context.fillStyle = 'white';
+      context.font = '16px Arial';
+      context.fillText(code, scaledBox[0][0], scaledBox[0][1] - 10);
     });
   });
 
