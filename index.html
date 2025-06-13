@@ -1,27 +1,25 @@
 <!DOCTYPE html>
 <html lang="lv">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Noliktavas svītrkodu skeneris</title>
-
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://unpkg.com/@ericblade/quagga2@0.0.10/dist/quagga.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noliktavas ZXing skeneris</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module"
+          src="https://cdn.jsdelivr.net/npm/@zxing/browser@latest"></script>
 </head>
 <body>
-  <!-- Neobligāts meklējuma lauks -->
   <input id="searchInput" type="text"
-         placeholder="Ievadi kodu (brīvs skenējums = atstāj tukšu)" />
-
-  <!-- Video + pārklājuma canvas -->
+         placeholder="Meklējamais kods (var atstāt tukšu)">
   <div id="videoWrapper">
     <video id="video" autoplay playsinline></video>
     <canvas id="overlay"></canvas>
   </div>
-
-  <audio id="beep" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"
+  <audio id="beep"
+         src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"
          preload="auto"></audio>
+  <div id="msg"></div>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
