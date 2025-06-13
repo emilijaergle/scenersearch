@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lv">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Svītrkodu skeneris</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://unpkg.com/@ericblade/quagga2@v0.0.10/dist/quagga.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Noliktavas svītrkodu skeneris</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <script src="https://unpkg.com/@ericblade/quagga2@0.0.10/dist/quagga.min.js"></script>
 </head>
 <body>
-    <div id="controls">
-        <input type="text" id="searchInput" placeholder="Ievadi meklējamo kodu">
-        <button id="startBtn">Sākt skenēšanu</button>
-    </div>
-    <div id="videoWrapper">
-        <video id="video" autoplay></video>
-        <canvas id="overlay"></canvas>
-    </div>
-    <audio id="beep" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
-    <script src="script.js"></script>
+  <input id="searchInput" type="text" placeholder="Ievadi meklējamo kodu (nav obligāti)" />
+
+  <div id="videoWrapper">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="overlay"></canvas>
+  </div>
+
+  <audio id="beep" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="auto"></audio>
+
+  <script src="script.js"></script>
 </body>
 </html>
