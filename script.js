@@ -1,115 +1,120 @@
 document.addEventListener('DOMContentLoaded', () => {
+
+  /* ---- elementi ---- */
   const input   = document.getElementById('searchInput');
-  const beep    = document.getElementById('beep');
   const video   = document.getElementById('video');
   const overlay = document.getElementById('overlay');
   const ctx     = overlay.getContext('2d', { willReadFrequently: true });
-
+  const beep    = document.getElementById('beep');
   let searchCode = '';
 
-  input.addEventListener('input', () => { searchCode = input.value.trim(); });
+  input.addEventListener('input', () => searchCode = input.value.trim());
 
-  Quagga.init({
+  /* ---- Quagga konfigurācija ---- */
+  const cfg = {
     inputStream: {
-      name: 'Live',
       type: 'LiveStream',
       target: document.querySelector('#videoWrapper'),
       constraints: {
-        facingMode: 'environment',
-        width : { ideal: 1280 },
-        height: { ideal: 720 }
+        width : { ideal: 1920, max: 1920 },   // desktop HD
+        height: { ideal: 1080, max: 1080 },
+        facingMode: { ideal: 'environment' }  // mobile back-cam, desktop ignorē
       }
     },
     decoder: {
+      multiple: true,
       readers: [
-        'code_128_reader',
-        'ean_reader',
-        'ean_8_reader',
-        'upc_reader',
-        'code_39_reader'
-      ],
-      multiple: true
+        'code_128_reader', 'ean_reader', 'ean_8_reader',
+        'upc_reader', 'code_39_reader'
+      ]
     },
     locate: true,
     locator: {
-      halfSample: false,
-      patchSize: 'x-small'
+      halfSample: false,       // pilna izšķirtspēja
+      patchSize: 'small'       // x-small var būt lēns uz desktop
     },
-    frequency: 15
-  }, err => {
-    if (err) { console.error(err); return; }
+    frequency: 25              // vairāk kadru sekundē
+  };
 
+  Quagga.init(cfg, err => {
+    if (err) { console.error(err); return; }
+    /* startēt pēc tam, kad video patiešām gatavs */
     video.onloadedmetadata = () => Quagga.start();
   });
 
-  Quagga.onProcessed(result => {
-    if (!result || !result.boxes) return;
+  /* ---- zīmēšana VISIEM (sarkans) ---- */
+  Quagga.onProcessed(res => {
+    if (!res || !res.boxes) return;
 
-    fitCanvas();
+    resizeCanvas();
     ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-    result.boxes.forEach(box => drawBox(box, 'red'));
+    res.boxes.forEach(b => drawBox(b, '--red', 2));   // sarkanie
   });
 
+  /* ---- dekodētie (zaļš/oranžš/zils) ---- */
   Quagga.onDetected(res => {
-    res?.codeResult && highlightMatch(res);
+    const { code } = res.codeResult || {};
+    if (!code) return;
+
+    const color = pickColor(code);
+    const p     = drawBox(res.box, color, 4);
+    if (p) drawLabel(code, p, color);
+
+    if (color === '--green') beep.play();
   });
 
+  /* ========================================================= */
 
-  function fitCanvas() {
+  function resizeCanvas() {
     overlay.width  = overlay.clientWidth;
     overlay.height = overlay.clientHeight;
   }
 
-  function drawBox(box, color) {
-    if (!box || !Array.isArray(box) || box.length < 4) return;
-    if (!video.videoWidth || !video.videoHeight) return;
+  function scale(pt){                 // X,Y skalēšana
+    return [
+      pt[0] * overlay.width  / video.videoWidth,
+      pt[1] * overlay.height / video.videoHeight
+    ];
+  }
 
-    const scaleX = overlay.width  / video.videoWidth;
-    const scaleY = overlay.height / video.videoHeight;
-    const pts = box.map(([x, y]) => [x * scaleX, y * scaleY]);
+  /* zīmē taisnstūri, atgriež pirmo punktu teksta izvietojumam */
+  function drawBox(box, cssColorVar, w = 2){
+    if (!box || !Array.isArray(box) || box.length < 4 ||
+        !video.videoWidth || !video.videoHeight) return null;
 
+    const pts = box.map(scale);
     ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    pts.slice(1).forEach(([x, y]) => ctx.lineTo(x, y));
+    ctx.moveTo(...pts[0]);
+    pts.slice(1).forEach(p => ctx.lineTo(...p));
     ctx.closePath();
-    ctx.lineWidth   = color === 'red' ? 2 : 4;
-    ctx.strokeStyle = color;
+    ctx.lineWidth   = w;
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue(cssColorVar);
     ctx.stroke();
     return pts[0];
   }
 
-  function highlightMatch(res) {
-    const { code } = res.codeResult;
-    const topLeft  = drawBox(res.box, matchColor(code));
-    if (!topLeft) return;
-
-    ctx.font      = '16px Arial';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(code, topLeft[0], topLeft[1] - 6);
+  function drawLabel(txt,[x,y],cssColorVar){
+    ctx.font='16px Arial';
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue(cssColorVar);
+    ctx.fillText(txt,x,y-6);
   }
 
-  function matchColor(code) {
-    if (!searchCode)          return 'blue'; 
-    if (code === searchCode)  { beep.play(); return 'lime'; }
-    return isSimilar(code, searchCode) ? 'orange' : 'red';
+  function pickColor(code){
+    if (!searchCode)             return '--blue';   // brīvs skenējums
+    if (code === searchCode)     return '--green';
+    return isSimilar(code,searchCode)?'--orange':'--red';
   }
 
-  function isSimilar(a, b) {
-    if (Math.abs(a.length - b.length) > 3) return false;
-    let dpPrev = Array(b.length + 1).fill(0).map((_, i) => i);
-    for (let i = 1; i <= a.length; i++) {
-      const dpCurr = [i];
-      for (let j = 1; j <= b.length; j++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        dpCurr[j] = Math.min(
-          dpPrev[j] + 1,        
-          dpCurr[j - 1] + 1,     
-          dpPrev[j - 1] + cost    
-        );
-      }
-      dpPrev = dpCurr;
+  /* ≤3 atšķirības Levenshtein distance */
+  function isSimilar(a,b){
+    if (Math.abs(a.length-b.length)>3) return false;
+    const m=a.length,n=b.length; const d=[...Array(m+1)].map((_,i)=>[i,...Array(n).fill(0)]);
+    for(let j=1;j<=n;j++)d[0][j]=j;
+    for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){
+      const cost=a[i-1]===b[j-1]?0:1;
+      d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+cost);
     }
-    return dpPrev[b.length] <= 3;
+    return d[m][n]<=3;
   }
 });
