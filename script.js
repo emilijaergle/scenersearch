@@ -3,11 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const startBtn = document.getElementById('startBtn');
   const beep = document.getElementById('beep');
   const overlay = document.getElementById('overlay');
-  const context = overlay.getContext('2d');
+  const context = overlay.getContext('2d', { willReadFrequently: true });
   const videoElement = document.querySelector('video');
   let searchCode = '';
 
-  // Mobilajā neļauj soft-klaviatūrai pazudināt UI
   searchInput.addEventListener('focus', () => {
     window.scrollTo(0, 0);
     document.body.scrollTop = 0;
@@ -56,61 +55,59 @@ document.addEventListener('DOMContentLoaded', () => {
       Quagga.start();
     });
 
-Quagga.onDetected(result => {
-  overlay.width = overlay.clientWidth;
-  overlay.height = overlay.clientHeight;
-  context.clearRect(0, 0, overlay.width, overlay.height);
+    Quagga.onDetected(result => {
+      console.log("DETECTED:", result);
+      overlay.width = overlay.clientWidth;
+      overlay.height = overlay.clientHeight;
+      context.clearRect(0, 0, overlay.width, overlay.height);
 
-  const boxes = result.boxes || [];
+      const boxes = result.boxes || [];
 
-  boxes.forEach(boxData => {
-    const box = boxData.box || boxData;
-    const code = boxData.codeResult?.code;
+      boxes.forEach(boxData => {
+        const box = boxData.box || boxData;
+        const code = boxData.codeResult?.code;
 
-    if (!box || !Array.isArray(box) || box.length < 4) return;
+        if (!box || !Array.isArray(box) || box.length < 4) return;
 
-    const scaleX = overlay.width / videoElement.videoWidth;
-    const scaleY = overlay.height / videoElement.videoHeight;
-    const scaledBox = box.map(([x, y]) => [x * scaleX, y * scaleY]);
+        const scaleX = overlay.width / videoElement.videoWidth;
+        const scaleY = overlay.height / videoElement.videoHeight;
+        const scaledBox = box.map(([x, y]) => [x * scaleX, y * scaleY]);
 
-    // 🔴 visiem zīmē sarkanu taisnstūri
-    context.lineWidth = 2;
-    context.strokeStyle = 'red';
-    context.beginPath();
-    context.moveTo(scaledBox[0][0], scaledBox[0][1]);
-    for (let i = 1; i < scaledBox.length; i++) {
-      context.lineTo(scaledBox[i][0], scaledBox[i][1]);
-    }
-    context.closePath();
-    context.stroke();
+        context.lineWidth = 2;
+        context.strokeStyle = 'red';
+        context.beginPath();
+        context.moveTo(scaledBox[0][0], scaledBox[0][1]);
+        for (let i = 1; i < scaledBox.length; i++) {
+          context.lineTo(scaledBox[i][0], scaledBox[i][1]);
+        }
+        context.closePath();
+        context.stroke();
 
-    if (!code) return;
+        if (!code) return;
 
-    // 🟢 vai 🟠, ja ir atbilstība
-    context.lineWidth = 4;
-    if (code === searchCode) {
-      context.strokeStyle = 'lime';
-      beep.play();
-    } else if (isSimilar(code, searchCode)) {
-      context.strokeStyle = 'orange';
-    } else {
-      return;
-    }
+        context.lineWidth = 4;
+        if (code === searchCode) {
+          context.strokeStyle = 'lime';
+          beep.play();
+        } else if (isSimilar(code, searchCode)) {
+          context.strokeStyle = 'orange';
+        } else {
+          return;
+        }
 
-    context.beginPath();
-    context.moveTo(scaledBox[0][0], scaledBox[0][1]);
-    for (let i = 1; i < scaledBox.length; i++) {
-      context.lineTo(scaledBox[i][0], scaledBox[i][1]);
-    }
-    context.closePath();
-    context.stroke();
+        context.beginPath();
+        context.moveTo(scaledBox[0][0], scaledBox[0][1]);
+        for (let i = 1; i < scaledBox.length; i++) {
+          context.lineTo(scaledBox[i][0], scaledBox[i][1]);
+        }
+        context.closePath();
+        context.stroke();
 
-    context.fillStyle = 'white';
-    context.font = '16px Arial';
-    context.fillText(code, scaledBox[0][0], scaledBox[0][1] - 10);
-  });
-});
-
+        context.fillStyle = 'white';
+        context.font = '16px Arial';
+        context.fillText(code, scaledBox[0][0], scaledBox[0][1] - 10);
+      });
+    });
   });
 
   function isSimilar(a, b) {
