@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Noliktavas ZXing skeneris</title>
   <link rel="stylesheet" href="style.css">
-  <script type="module"
-          src="https://cdn.jsdelivr.net/npm/@zxing/browser@latest"></script>
 </head>
 <body>
   <input id="searchInput" type="text"
-         placeholder="Meklējamais kods (var atstāt tukšu)">
+         placeholder="Meklējamais kods — var atstāt tukšu">
   <div id="videoWrapper">
     <video id="video" autoplay playsinline></video>
     <canvas id="overlay"></canvas>
@@ -18,7 +16,6 @@
   <audio id="beep"
          src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"
          preload="auto"></audio>
-  <div id="msg"></div>
 
   <script type="module" src="script.js"></script>
 </body>
